@@ -27,15 +27,16 @@ class Visualizer {
         const height = this.container.clientHeight || 600;
 
         try {
-            // PixiJS 7.3.2 использует синхронный конструктор
+            // Явно выбираем canvas-рендерер, чтобы избежать auto-detect ошибок
             this.app = new PIXI.Application({
                 width: width,
                 height: height,
                 backgroundColor: this.colors.background,
-                antialias: true
+                antialias: true,
+                forceCanvas: true
             });
 
-            this.container.appendChild(this.app.view);
+            this.container.appendChild(this.app.view || this.app.canvas);
 
             // Создаем контейнеры для разных слоев
             this.backgroundLayer = new PIXI.Container();
