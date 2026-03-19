@@ -27,16 +27,17 @@ class Visualizer {
         const height = this.container.clientHeight || 600;
 
         try {
-            // Явно выбираем canvas-рендерер, чтобы избежать auto-detect ошибок
-            this.app = new PIXI.Application({
+            // Для PixiJS 7 и некоторых окружений GitHub Pages нужна явная async-инициализация
+            this.app = new PIXI.Application();
+            await this.app.init({
                 width: width,
                 height: height,
                 backgroundColor: this.colors.background,
                 antialias: true,
-                forceCanvas: true
+                preference: 'webgl'
             });
 
-            this.container.appendChild(this.app.view || this.app.canvas);
+            this.container.appendChild(this.app.canvas || this.app.view);
 
             // Создаем контейнеры для разных слоев
             this.backgroundLayer = new PIXI.Container();
