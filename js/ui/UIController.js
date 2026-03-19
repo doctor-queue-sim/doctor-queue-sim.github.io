@@ -124,6 +124,10 @@ class UIController {
             this.engine.onUpdate = (state) => this.updateUI(state);
             this.engine.start();
 
+            // Отображаем врачей сразу после старта
+            const initialState = this.engine.getState();
+            this.visualizer.update(initialState);
+
             this.startBtn.disabled = true;
             this.pauseBtn.disabled = false;
             this.pauseBtn.textContent = 'Пауза';
