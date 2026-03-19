@@ -16,6 +16,7 @@ class UIController {
         // Кнопки управления
         this.startBtn = document.getElementById('startBtn');
         this.pauseBtn = document.getElementById('pauseBtn');
+        this.stepBtn = document.getElementById('stepBtn');
         this.resetBtn = document.getElementById('resetBtn');
 
         // Элементы метрик
@@ -85,6 +86,7 @@ class UIController {
         // Обработчики кнопок
         this.startBtn.addEventListener('click', () => this.handleStart());
         this.pauseBtn.addEventListener('click', () => this.handlePause());
+        this.stepBtn.addEventListener('click', () => this.handleStep());
         this.resetBtn.addEventListener('click', () => this.handleReset());
 
         // Обработчик изменения размера окна
@@ -130,6 +132,7 @@ class UIController {
 
             this.startBtn.disabled = true;
             this.pauseBtn.disabled = false;
+            this.stepBtn.disabled = false;
             this.pauseBtn.textContent = 'Пауза';
 
             this.runSimulation();
@@ -159,6 +162,46 @@ class UIController {
     }
 
     /**
+     * Обработать нажатие кнопки "Шаг"
+     */
+    handleStep() {
+        if (!this.engine.isRunning) {
+            const params = {
+                arrivalRate: parseFloat(this.arrivalRateInput.value),
+                serviceTime: parseFloat(this.serviceTimeInput.value),
+                numDoctors: parseInt(this.numDoctorsInput.value),
+                queueCapacity: parseInt(this.queueCapacityInput.value)
+            };
+
+            this.engine.initialize(params);
+            this.engine.onUpdate = (state) => this.updateUI(state);
+            this.engine.start();
+            this.engine.pause();
+
+            const initialState = this.engine.getState();
+            this.visualizer.update(initialState);
+
+            this.startBtn.disabled = false;
+            this.pauseBtn.disabled = false;
+            this.stepBtn.disabled = false;
+            this.pauseBtn.textContent = 'Продолжить';
+        }
+
+        if (this.animationFrameId) {
+            cancelAnimationFrame(this.animationFrameId);
+            this.animationFrameId = null;
+        }
+
+        if (!this.engine.step()) {
+            this.handleStop();
+            return;
+        }
+
+        this.engine.pause();
+        this.pauseBtn.textContent = 'Продолжить';
+    }
+
+    /**
      * Обработать нажатие кнопки "Сброс"
      */
     handleReset() {
@@ -176,6 +219,7 @@ class UIController {
         // Обновляем UI
         this.startBtn.disabled = false;
         this.pauseBtn.disabled = true;
+        this.stepBtn.disabled = false;
         this.pauseBtn.textContent = 'Пауза';
 
         // Очищаем метрики
@@ -232,6 +276,7 @@ class UIController {
         this.engine.stop();
         this.startBtn.disabled = false;
         this.pauseBtn.disabled = true;
+        this.stepBtn.disabled = false;
 
         if (this.animationFrameId) {
             cancelAnimationFrame(this.animationFrameId);
