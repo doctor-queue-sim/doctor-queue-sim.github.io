@@ -3,241 +3,135 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Профессиональная симуляция очереди к врачам</title>
-    <meta name="description" content="Интерактивная симуляция системы массового обслуживания M/M/c для моделирования очереди к врачам">
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background: #f0f0f0;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-
-        .header {
-            background: #2c3e50;
-            color: white;
-            padding: 20px;
-            text-align: center;
-        }
-
-        .header h1 {
-            margin: 0;
-            font-size: 28px;
-        }
-
-        .header p {
-            margin: 10px 0 0 0;
-            opacity: 0.8;
-            font-size: 16px;
-        }
-
-        .content {
-            display: flex;
-            min-height: 600px;
-        }
-
-        .simulation-area {
-            flex: 3;
-            padding: 20px;
-            border-right: 1px solid #eee;
-            background: #fafafa;
-        }
-
-        .controls-area {
-            flex: 2;
-            padding: 20px;
-            min-width: 400px;
-        }
-
-        #simulationCanvas {
-            border: 1px solid #ddd;
-            background: white;
-            display: block;
-            margin: 0 auto;
-        }
-
-        .legend {
-            margin-top: 20px;
-            text-align: center;
-            font-size: 14px;
-            color: #666;
-        }
-
-        .legend-item {
-            display: inline-block;
-            margin: 0 15px;
-        }
-
-        .legend-color {
-            display: inline-block;
-            width: 15px;
-            height: 15px;
-            border-radius: 50%;
-            margin-right: 5px;
-            vertical-align: middle;
-        }
-
-        .doctor-color {
-            background: #0000FF;
-        }
-
-        .patient-color {
-            background: #FF0000;
-        }
-
-        .waiting-color {
-            background: #FFA500;
-        }
-
-        .info-box {
-            background: #e8f4fd;
-            border-left: 4px solid #2196F3;
-            padding: 15px;
-            margin: 20px 0;
-            border-radius: 4px;
-        }
-
-        .info-box h3 {
-            margin: 0 0 10px 0;
-            color: #1976d2;
-        }
-
-        .info-box ul {
-            margin: 0;
-            padding-left: 20px;
-        }
-
-        .info-box li {
-            margin: 5px 0;
-        }
-
-        .github-link {
-            text-align: center;
-            margin: 20px 0;
-            padding: 10px;
-        }
-
-        .github-link a {
-            color: #0366d6;
-            text-decoration: none;
-        }
-
-        .github-link a:hover {
-            text-decoration: underline;
-        }
-    </style>
+    <title>Симуляция очереди к врачу</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>Профессиональная симуляция очереди к врачам</h1>
-            <p>Моделирование системы массового обслуживания M/M/c с экспоненциальными распределениями</p>
-        </div>
+        <header>
+            <h1>Симуляция очереди к врачу</h1>
+        </header>
 
-        <div class="content">
-            <div class="simulation-area">
-                <canvas id="simulationCanvas" width="800" height="500"></canvas>
+        <div class="main-content">
+            <!-- Панель управления параметрами -->
+            <aside class="control-panel">
+                <h2>Параметры симуляции</h2>
 
-                <div class="legend">
-                    <div class="legend-item">
-                        <span class="legend-color doctor-color"></span>
-                        Врач
+                <div class="parameter">
+                    <label for="arrivalRate">Интенсивность прихода (пациентов/час):</label>
+                    <input type="number" id="arrivalRate" min="1" max="100" value="10" step="1">
+                    <span class="value-display">10</span>
+                </div>
+
+                <div class="parameter">
+                    <label for="serviceTime">Среднее время приёма (минут):</label>
+                    <input type="number" id="serviceTime" min="1" max="60" value="15" step="1">
+                    <span class="value-display">15</span>
+                </div>
+
+                <div class="parameter">
+                    <label for="numDoctors">Количество врачей:</label>
+                    <input type="number" id="numDoctors" min="1" max="10" value="2" step="1">
+                    <span class="value-display">2</span>
+                </div>
+
+                <div class="parameter">
+                    <label for="queueCapacity">Максимальная длина очереди:</label>
+                    <input type="number" id="queueCapacity" min="1" max="50" value="10" step="1">
+                    <span class="value-display">10</span>
+                </div>
+
+                <div class="controls">
+                    <button id="startBtn" class="btn btn-primary">Старт</button>
+                    <button id="pauseBtn" class="btn btn-secondary" disabled>Пауза</button>
+                    <button id="resetBtn" class="btn btn-danger">Сброс</button>
+                </div>
+
+                <div class="speed-control">
+                    <label for="simulationSpeed">Скорость симуляции:</label>
+                    <input type="range" id="simulationSpeed" min="1" max="10" value="5" step="1">
+                    <span class="value-display">5x</span>
+                </div>
+            </aside>
+
+            <!-- Область визуализации -->
+            <section class="visualization">
+                <div id="canvas-container"></div>
+            </section>
+
+            <!-- Панель метрик -->
+            <aside class="metrics-panel">
+                <h2>Метрики производительности</h2>
+
+                <div class="metric">
+                    <h3>Время ожидания</h3>
+                    <div class="metric-value">
+                        <span class="label">Среднее:</span>
+                        <span id="avgWaitTime">0.0</span> мин
                     </div>
-                    <div class="legend-item">
-                        <span class="legend-color patient-color"></span>
-                        Пациент на приёме
-                    </div>
-                    <div class="legend-item">
-                        <span class="legend-color waiting-color"></span>
-                        Пациент в очереди
+                    <div class="metric-value">
+                        <span class="label">95-й перцентиль:</span>
+                        <span id="p95WaitTime">0.0</span> мин
                     </div>
                 </div>
 
-                <div class="info-box">
-                    <h3>О симуляции</h3>
-                    <ul>
-                        <li><strong>Приход пациентов:</strong> Пуассоновский процесс с интенсивностью λ (пациентов/час)</li>
-                        <li><strong>Время обслуживания:</strong> Экспоненциальное распределение со средним значением</li>
-                        <li><strong>Дисциплина очереди:</strong> FIFO (первым пришел - первым обслужен)</li>
-                        <li><strong>Система:</strong> Многоканальная с общей очередью (M/M/c)</li>
-                        <li><strong>Метрики:</strong> Среднее время ожидания, 95-й перцентиль, загрузка врачей, SLA</li>
-                    </ul>
+                <div class="metric">
+                    <h3>Пропускная способность</h3>
+                    <div class="metric-value">
+                        <span id="throughput">0.0</span> пациентов/час
+                    </div>
                 </div>
 
-                <div class="github-link">
-                    <a href="https://github.com/doctor-queue-sim/doctor-queue-sim.github.io" target="_blank">
-                        📁 Исходный код на GitHub
-                    </a>
+                <div class="metric">
+                    <h3>Загрузка врачей</h3>
+                    <div class="metric-value">
+                        <span id="doctorUtilization">0.0</span>%
+                    </div>
                 </div>
-            </div>
 
-            <div class="controls-area" id="controlsArea">
-                <!-- Здесь будет создан интерфейс управления через JavaScript -->
-            </div>
+                <div class="metric">
+                    <h3>Длина очереди</h3>
+                    <div class="metric-value">
+                        <span class="label">Текущая:</span>
+                        <span id="currentQueueLength">0</span>
+                    </div>
+                    <div class="metric-value">
+                        <span class="label">Максимальная:</span>
+                        <span id="maxQueueLength">0</span>
+                    </div>
+                </div>
+
+                <div class="metric">
+                    <h3>Статистика</h3>
+                    <div class="metric-value">
+                        <span class="label">Обслужено:</span>
+                        <span id="servedPatients">0</span>
+                    </div>
+                    <div class="metric-value">
+                        <span class="label">Отказано:</span>
+                        <span id="rejectedPatients">0</span>
+                    </div>
+                    <div class="metric-value">
+                        <span class="label">Время симуляции:</span>
+                        <span id="simulationTime">0.0</span> ч
+                    </div>
+                </div>
+            </aside>
         </div>
     </div>
 
-    <!-- Библиотеки -->
-    <script src="js/lib/pixi.min.js"></script>
-    <script src="js/lib/tweenjs-0.6.2.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/seedrandom/3.0.5/seedrandom.min.js"></script>
-    <script src="js/lib/helpers.js"></script>
+    <!-- Подключение библиотек -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.3.2/pixi.min.js"></script>
 
-    <!-- Профессиональная симуляция -->
-    <script src="js/sims/QueueSimulationProfessional.js"></script>
-    <script src="js/sims/QueueUIProfessional.js"></script>
-
-    <script>
-        // Инициализация при загрузке страницы
-        document.addEventListener('DOMContentLoaded', function() {
-
-            // Создание PIXI приложения
-            var app = new PIXI.Application({
-                width: 800,
-                height: 500,
-                backgroundColor: 0xFFFFFF,
-                view: document.getElementById('simulationCanvas')
-            });
-
-            // Создание симуляции
-            var simulation = new QueueSimulationProfessional({
-                app: app
-            });
-
-            // Создание интерфейса управления
-            var ui = new QueueUIProfessional({
-                container: document.getElementById('controlsArea'),
-                simulation: simulation
-            });
-
-            // Добавление обработчика изменения размера окна
-            window.addEventListener('resize', function() {
-                // Можно добавить адаптивность при необходимости
-            });
-
-            console.log('Профессиональная симуляция очереди инициализирована');
-            console.log('Параметры по умолчанию:');
-            console.log('- Интенсивность прихода: ' + simulation.arrivalRatePerHour + ' пациентов/час');
-            console.log('- Среднее время приёма: ' + simulation.meanServiceMinutes + ' минут');
-            console.log('- Количество врачей: ' + simulation.numDoctors);
-            console.log('- Длительность смены: ' + simulation.shiftMinutes + ' минут');
-            console.log('- SLA: ' + simulation.slaMinutes + ' минут');
-
-            // Автоматический запуск через 1 секунду для демонстрации
-            setTimeout(function() {
-                simulation.start();
-            }, 1000);
-
-        });
-    </script>
+    <!-- Подключение модулей симуляции -->
+    <script src="js/models/Patient.js"></script>
+    <script src="js/models/Doctor.js"></script>
+    <script src="js/models/Queue.js"></script>
+    <script src="js/core/EventQueue.js"></script>
+    <script src="js/core/SimulationEngine.js"></script>
+    <script src="js/core/Statistics.js"></script>
+    <script src="js/visualization/Visualizer.js"></script>
+    <script src="js/ui/UIController.js"></script>
+    <script src="js/main.js"></script>
 </body>
 </html>

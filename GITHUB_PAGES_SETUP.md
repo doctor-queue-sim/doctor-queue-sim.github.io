@@ -1,138 +1,158 @@
-# Настройка GitHub Pages для doctor-queue-sim.github.io
+# Настройка GitHub Pages
 
-## Текущая ситуация
-Репозиторий создан: `https://github.com/axtrace/doctor-queue-sim.github.io`
-Сайт показывает 404: `doctor-queue-sim.github.io`
+## Шаги для публикации проекта на GitHub Pages
 
-## Решение проблемы
-
-### Шаг 1: Загрузка файлов в репозиторий
-
-Скопируйте следующие файлы в корень репозитория:
-
-**Обязательные файлы:**
-- `index.html` - главная страница
-- `README.md` - документация
-- `favicon.png` - иконка сайта
-
-**Папки:**
-- `js/` - все JavaScript файлы
-  - `js/sims/QueueSimulationProfessional.js`
-  - `js/sims/QueueUIProfessional.js`
-  - `js/lib/pixi.min.js`
-  - `js/lib/tweenjs-0.6.2.min.js`
-  - `js/lib/helpers.js`
-
-### Шаг 2: Настройка GitHub Pages
-
-1. Перейдите в репозиторий: `https://github.com/axtrace/doctor-queue-sim.github.io`
-2. Нажмите на вкладку **Settings**
-3. В левом меню выберите **Pages**
-4. В разделе **Source** выберите:
-   - Branch: `main`
-   - Folder: `/` (root)
-5. Нажмите **Save**
-
-### Шаг 3: Проверка публикации
-
-После сохранения настроек:
-- GitHub начнет процесс публикации (занимает 1-10 минут)
-- На странице Settings → Pages появится ссылка на опубликованный сайт
-- Сайт будет доступен по адресу: `https://axtrace.github.io/doctor-queue-sim.github.io/`
-
-**Важно:** Для пользовательских доменов вида `username.github.io` публикация может занять до 24 часов.
-
-### Шаг 4: Альтернативное решение (если не работает)
-
-Если стандартная настройка не работает, создайте ветку `gh-pages`:
+### 1. Инициализация Git репозитория (если еще не сделано)
 
 ```bash
-# Клонируйте репозиторий
-git clone https://github.com/axtrace/doctor-queue-sim.github.io.git
-cd doctor-queue-sim.github.io
-
-# Создайте ветку gh-pages и переключитесь на нее
-git checkout -b gh-pages
-
-# Добавьте файлы
+git init
 git add .
-git commit -m "Initial commit for GitHub Pages"
+git commit -m "Initial commit: Doctor queue simulation"
+```
+
+### 2. Создание репозитория на GitHub
+
+1. Перейдите на [GitHub](https://github.com)
+2. Нажмите "New repository"
+3. Назовите репозиторий: `doctor-queue-sim.github.io`
+4. Оставьте репозиторий публичным (Public)
+5. НЕ добавляйте README, .gitignore или лицензию (они уже есть)
+6. Нажмите "Create repository"
+
+### 3. Подключение удаленного репозитория
+
+```bash
+git remote add origin https://github.com/YOUR_USERNAME/doctor-queue-sim.github.io.git
+git branch -M main
+git push -u origin main
+```
+
+Замените `YOUR_USERNAME` на ваше имя пользователя GitHub.
+
+### 4. Включение GitHub Pages
+
+1. Перейдите в настройки репозитория (Settings)
+2. В левом меню выберите "Pages"
+3. В разделе "Source" выберите:
+   - Branch: `main`
+   - Folder: `/ (root)`
+4. Нажмите "Save"
+
+### 5. Проверка публикации
+
+Через несколько минут ваш сайт будет доступен по адресу:
+```
+https://YOUR_USERNAME.github.io/doctor-queue-sim.github.io/
+```
+
+## Обновление сайта
+
+После внесения изменений в код:
+
+```bash
+git add .
+git commit -m "Описание изменений"
+git push
+```
+
+GitHub Pages автоматически обновит сайт через 1-2 минуты.
+
+## Альтернативный вариант: использование gh-pages ветки
+
+Если вы хотите использовать отдельную ветку для публикации:
+
+```bash
+# Создать ветку gh-pages
+git checkout -b gh-pages
 git push origin gh-pages
+
+# Вернуться на main
+git checkout main
 ```
 
 Затем в настройках GitHub Pages выберите ветку `gh-pages`.
 
-## Структура файлов после загрузки
+## Проверка работоспособности
 
+После публикации проверьте:
+- ✅ Страница загружается
+- ✅ PixiJS библиотека подключена (проверьте консоль браузера)
+- ✅ Все JavaScript файлы загружаются без ошибок
+- ✅ Визуализация отображается корректно
+- ✅ Кнопки управления работают
+
+## Возможные проблемы
+
+### Проблема: 404 ошибка
+**Решение**: Убедитесь, что файл `index.html` находится в корне репозитория.
+
+### Проблема: JavaScript не работает
+**Решение**: Проверьте консоль браузера (F12) на наличие ошибок. Убедитесь, что все пути к файлам относительные.
+
+### Проблема: PixiJS не загружается
+**Решение**: Проверьте подключение к CDN. Если CDN недоступен, скачайте библиотеку локально.
+
+### Проблема: Стили не применяются
+**Решение**: Проверьте путь к `styles.css` в `index.html`. Очистите кэш браузера (Ctrl+Shift+R).
+
+## Дополнительные настройки
+
+### Добавление custom domain
+
+1. Создайте файл `CNAME` в корне репозитория:
 ```
-doctor-queue-sim.github.io/
-├── index.html
-├── README.md
-├── favicon.png
-├── js/
-│   ├── sims/
-│   │   ├── QueueSimulationProfessional.js
-│   │   └── QueueUIProfessional.js
-│   └── lib/
-│       ├── pixi.min.js
-│       ├── tweenjs-0.6.2.min.js
-│       └── helpers.js
-├── queue_professional.html
-├── test_professional_queue.html
-└── PROFESSIONAL_QUEUE_DOCUMENTATION.md
+yourdomain.com
 ```
 
-## Проверка работы локально
+2. Настройте DNS записи у вашего регистратора домена:
+```
+Type: CNAME
+Name: www
+Value: YOUR_USERNAME.github.io
+```
 
-Перед загрузкой проверьте сайт локально:
+### Добавление favicon
+
+Добавьте файл `favicon.ico` в корень проекта и обновите `index.html`:
+```html
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+```
+
+## Полезные команды Git
 
 ```bash
-python3 -m http.server 8000
+# Проверить статус
+git status
+
+# Посмотреть историю коммитов
+git log --oneline
+
+# Отменить последний коммит (не отправленный)
+git reset --soft HEAD~1
+
+# Посмотреть изменения
+git diff
+
+# Создать новую ветку
+git checkout -b feature-name
+
+# Переключиться между ветками
+git checkout branch-name
+
+# Слить ветку
+git merge branch-name
 ```
 
-Откройте: `http://localhost:8000`
+## Мониторинг
 
-## Решение распространенных проблем
+После публикации вы можете отслеживать:
+- Количество посещений (GitHub Insights)
+- Ошибки в консоли браузера
+- Производительность (Chrome DevTools)
 
-### Проблема 1: 404 ошибка
-- **Причина**: Файлы не загружены или неправильная настройка Pages
-- **Решение**: Проверьте наличие `index.html` в корне и настройки GitHub Pages
+## Поддержка
 
-### Проблема 2: Белый экран
-- **Причина**: Ошибки JavaScript в консоли браузера
-- **Решение**: Откройте Developer Tools (F12) и проверьте ошибки
-
-### Проблема 3: Библиотеки не загружаются
-- **Причина**: Неправильные пути к файлам
-- **Решение**: Убедитесь, что все файлы в папке `js/` загружены
-
-## Быстрая команда для загрузки
-
-Если у вас есть доступ к терминалу и Git:
-
-```bash
-# Клонируйте репозиторий
-git clone https://github.com/axtrace/doctor-queue-sim.github.io.git
-cd doctor-queue-sim.github.io
-
-# Скопируйте файлы из текущей папки trust
-cp /Users/sofinma/Desktop/trust/index.html .
-cp /Users/sofinma/Desktop/trust/README.md .
-cp /Users/sofinma/Desktop/trust/favicon.png .
-cp -r /Users/sofinma/Desktop/trust/js .
-
-# Закоммитьте и отправьте
-git add .
-git commit -m "Add professional queue simulation"
-git push origin main
-```
-
-## Контрольный список
-
-- [ ] Файл `index.html` загружен в корень репозитория
-- [ ] Папка `js/` со всеми подпапками загружена
-- [ ] GitHub Pages настроен на ветку `main` и папку `/`
-- [ ] Сайт доступен по ссылке из настроек Pages
-- [ ] Нет ошибок в консоли браузера
-
-После выполнения этих шагов сайт должен работать по адресу: `https://axtrace.github.io/doctor-queue-sim.github.io/`
+Если возникли проблемы:
+1. Проверьте [GitHub Pages документацию](https://docs.github.com/en/pages)
+2. Проверьте консоль браузера на ошибки
+3. Убедитесь, что все файлы закоммичены и отправлены

@@ -1,0 +1,256 @@
+/**
+ * Класс UIController - управление пользовательским интерфейсом
+ */
+class UIController {
+    constructor(simulationEngine, visualizer) {
+        this.engine = simulationEngine;
+        this.visualizer = visualizer;
+
+        // Элементы управления параметрами
+        this.arrivalRateInput = document.getElementById('arrivalRate');
+        this.serviceTimeInput = document.getElementById('serviceTime');
+        this.numDoctorsInput = document.getElementById('numDoctors');
+        this.queueCapacityInput = document.getElementById('queueCapacity');
+        this.simulationSpeedInput = document.getElementById('simulationSpeed');
+
+        // Кнопки управления
+        this.startBtn = document.getElementById('startBtn');
+        this.pauseBtn = document.getElementById('pauseBtn');
+        this.resetBtn = document.getElementById('resetBtn');
+
+        // Элементы метрик
+        this.avgWaitTimeEl = document.getElementById('avgWaitTime');
+        this.p95WaitTimeEl = document.getElementById('p95WaitTime');
+        this.throughputEl = document.getElementById('throughput');
+        this.doctorUtilizationEl = document.getElementById('doctorUtilization');
+        this.currentQueueLengthEl = document.getElementById('currentQueueLength');
+        this.maxQueueLengthEl = document.getElementById('maxQueueLength');
+        this.servedPatientsEl = document.getElementById('servedPatients');
+        this.rejectedPatientsEl = document.getElementById('rejectedPatients');
+        this.simulationTimeEl = document.getElementById('simulationTime');
+
+        this.simulationSpeed = 5;
+        this.animationFrameId = null;
+
+        this.initializeEventListeners();
+        this.updateValueDisplays();
+    }
+
+    /**
+     * Инициализировать обработчики событий
+     */
+    initializeEventListeners() {
+        // Обработчики изменения параметров
+        this.arrivalRateInput.addEventListener('input', () => {
+            this.updateValueDisplays();
+            if (this.engine.isRunning) {
+                this.engine.updateParams({
+                    arrivalRate: parseFloat(this.arrivalRateInput.value)
+                });
+            }
+        });
+
+        this.serviceTimeInput.addEventListener('input', () => {
+            this.updateValueDisplays();
+            if (this.engine.isRunning) {
+                this.engine.updateParams({
+                    serviceTime: parseFloat(this.serviceTimeInput.value)
+                });
+            }
+        });
+
+        this.numDoctorsInput.addEventListener('input', () => {
+            this.updateValueDisplays();
+            if (this.engine.isRunning) {
+                this.engine.updateParams({
+                    numDoctors: parseInt(this.numDoctorsInput.value)
+                });
+            }
+        });
+
+        this.queueCapacityInput.addEventListener('input', () => {
+            this.updateValueDisplays();
+            if (this.engine.isRunning) {
+                this.engine.updateParams({
+                    queueCapacity: parseInt(this.queueCapacityInput.value)
+                });
+            }
+        });
+
+        this.simulationSpeedInput.addEventListener('input', () => {
+            this.simulationSpeed = parseInt(this.simulationSpeedInput.value);
+            this.updateValueDisplays();
+        });
+
+        // Обработчики кнопок
+        this.startBtn.addEventListener('click', () => this.handleStart());
+        this.pauseBtn.addEventListener('click', () => this.handlePause());
+        this.resetBtn.addEventListener('click', () => this.handleReset());
+
+        // Обработчик изменения размера окна
+        window.addEventListener('resize', () => {
+            this.visualizer.resize();
+        });
+    }
+
+    /**
+     * Обновить отображение значений параметров
+     */
+    updateValueDisplays() {
+        const displays = document.querySelectorAll('.parameter .value-display');
+        displays[0].textContent = this.arrivalRateInput.value;
+        displays[1].textContent = this.serviceTimeInput.value;
+        displays[2].textContent = this.numDoctorsInput.value;
+        displays[3].textContent = this.queueCapacityInput.value;
+
+        const speedDisplay = document.querySelector('.speed-control .value-display');
+        speedDisplay.textContent = `${this.simulationSpeed}x`;
+    }
+
+    /**
+     * Обработать нажатие кнопки "Старт"
+     */
+    handleStart() {
+        if (!this.engine.isRunning) {
+            // Инициализируем симуляцию с текущими параметрами
+            const params = {
+                arrivalRate: parseFloat(this.arrivalRateInput.value),
+                serviceTime: parseFloat(this.serviceTimeInput.value),
+                numDoctors: parseInt(this.numDoctorsInput.value),
+                queueCapacity: parseInt(this.queueCapacityInput.value)
+            };
+
+            this.engine.initialize(params);
+            this.engine.onUpdate = (state) => this.updateUI(state);
+            this.engine.start();
+
+            this.startBtn.disabled = true;
+            this.pauseBtn.disabled = false;
+            this.pauseBtn.textContent = 'Пауза';
+
+            this.runSimulation();
+        } else if (this.engine.isPaused) {
+            // Продолжаем симуляцию
+            this.engine.resume();
+            this.pauseBtn.textContent = 'Пауза';
+            this.runSimulation();
+        }
+    }
+
+    /**
+     * Обработать нажатие кнопки "Пауза"
+     */
+    handlePause() {
+        if (this.engine.isRunning && !this.engine.isPaused) {
+            this.engine.pause();
+            this.pauseBtn.textContent = 'Продолжить';
+
+            if (this.animationFrameId) {
+                cancelAnimationFrame(this.animationFrameId);
+                this.animationFrameId = null;
+            }
+        } else if (this.engine.isPaused) {
+            this.handleStart();
+        }
+    }
+
+    /**
+     * Обработать нажатие кнопки "Сброс"
+     */
+    handleReset() {
+        // Останавливаем симуляцию
+        this.engine.stop();
+
+        if (this.animationFrameId) {
+            cancelAnimationFrame(this.animationFrameId);
+            this.animationFrameId = null;
+        }
+
+        // Сбрасываем движок
+        this.engine.reset();
+
+        // Обновляем UI
+        this.startBtn.disabled = false;
+        this.pauseBtn.disabled = true;
+        this.pauseBtn.textContent = 'Пауза';
+
+        // Очищаем метрики
+        this.updateMetrics({
+            avgWaitTime: 0,
+            p95WaitTime: 0,
+            throughput: 0,
+            doctorUtilization: 0,
+            servedPatients: 0,
+            rejectedPatients: 0,
+            currentQueueLength: 0,
+            maxQueueLength: 0,
+            simulationTime: 0
+        });
+
+        // Обновляем визуализацию
+        this.visualizer.update({
+            queue: new Queue(parseInt(this.queueCapacityInput.value)),
+            doctors: []
+        });
+    }
+
+    /**
+     * Запустить цикл симуляции
+     */
+    runSimulation() {
+        if (!this.engine.isRunning || this.engine.isPaused) {
+            return;
+        }
+
+        const stepsPerFrame = this.simulationSpeed;
+
+        for (let i = 0; i < stepsPerFrame; i++) {
+            if (!this.engine.step()) {
+                this.handleStop();
+                return;
+            }
+        }
+
+        this.animationFrameId = requestAnimationFrame(() => this.runSimulation());
+    }
+
+    /**
+     * Обработать остановку симуляции
+     */
+    handleStop() {
+        this.engine.stop();
+        this.startBtn.disabled = false;
+        this.pauseBtn.disabled = true;
+
+        if (this.animationFrameId) {
+            cancelAnimationFrame(this.animationFrameId);
+            this.animationFrameId = null;
+        }
+    }
+
+    /**
+     * Обновить UI с новым состоянием
+     */
+    updateUI(state) {
+        // Обновляем визуализацию
+        this.visualizer.update(state);
+
+        // Обновляем метрики
+        this.updateMetrics(state.statistics);
+    }
+
+    /**
+     * Обновить отображение метрик
+     */
+    updateMetrics(stats) {
+        this.avgWaitTimeEl.textContent = stats.avgWaitTime.toFixed(2);
+        this.p95WaitTimeEl.textContent = stats.p95WaitTime.toFixed(2);
+        this.throughputEl.textContent = stats.throughput.toFixed(2);
+        this.doctorUtilizationEl.textContent = stats.doctorUtilization.toFixed(1);
+        this.currentQueueLengthEl.textContent = stats.currentQueueLength;
+        this.maxQueueLengthEl.textContent = stats.maxQueueLength;
+        this.servedPatientsEl.textContent = stats.servedPatients;
+        this.rejectedPatientsEl.textContent = stats.rejectedPatients;
+        this.simulationTimeEl.textContent = (stats.simulationTime / 60).toFixed(2);
+    }
+}
