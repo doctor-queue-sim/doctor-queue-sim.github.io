@@ -22,7 +22,6 @@ class Visualizer {
             textLight: '#ffffff'
         };
 
-        this._renderLoop = this._renderLoop.bind(this);
         this._state = null;
         this._welcomeVisible = true;
     }
