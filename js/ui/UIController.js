@@ -244,22 +244,31 @@ class UIController {
 
     /**
      * Запустить цикл симуляции
+     *
+     * Логика скорости:
+     *   timeScale = сколько секунд реального времени соответствует 1 часу симуляции.
+     *   При timeScale=10: 1 час симуляции = 10 сек реального времени.
+     *   При 60 FPS один кадр = 1/60 сек ≈ 0.0167 сек реального времени.
+     *   За один кадр нужно продвинуть симуляцию на: 60 / timeScale / 60 часов = 1/timeScale часов
+     *   = 60/timeScale минут симуляции за кадр.
+     *
+     *   Выполняем события пока currentTime не превысит targetTime.
      */
     runSimulation() {
         if (!this.engine.isRunning || this.engine.isPaused) {
             return;
         }
 
-        // Вычисляем количество шагов на основе масштаба времени
-        // timeScale секунд реального времени = 60 минут симуляции
-        // Чем меньше timeScale, тем быстрее симуляция
-        // При timeScale=10: 10 сек реального времени = 60 мин симуляции
-        // Это означает 6 минут симуляции в секунду
-        // При 60 FPS это примерно 0.1 минуты симуляции за кадр
+        // Минут симуляции за один кадр (при 60 FPS)
+        const simMinutesPerFrame = 60 / this.timeScale;
+        const targetTime = this.engine.currentTime + simMinutesPerFrame;
 
-        const stepsPerFrame = Math.max(1, Math.floor(60 / this.timeScale));
-
-        for (let i = 0; i < stepsPerFrame; i++) {
+        while (this.engine.currentTime < targetTime) {
+            // Проверяем, не выйдет ли следующее событие за targetTime
+            const nextEvent = this.engine.eventQueue.peek();
+            if (nextEvent && nextEvent.time > targetTime) {
+                break;
+            }
             if (!this.engine.step()) {
                 this.handleStop();
                 return;

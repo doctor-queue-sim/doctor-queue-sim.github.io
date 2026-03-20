@@ -38,11 +38,24 @@ async function initializeApp() {
  * Скрывается при первом нажатии «Старт»
  */
 function showWelcomeMessage() {
-    const originalStart = uiController.handleStart.bind(uiController);
-    uiController.handleStart = function() {
+    // Скрываем приветствие при первом «Старт» или первом «Шаг»
+    const hideOnce = () => {
         visualizer.hideWelcome();
         uiController.handleStart = originalStart;
+        uiController.handleStep = originalStep;
+    };
+
+    const originalStart = uiController.handleStart.bind(uiController);
+    const originalStep = uiController.handleStep.bind(uiController);
+
+    uiController.handleStart = function() {
+        hideOnce();
         originalStart();
+    };
+
+    uiController.handleStep = function() {
+        hideOnce();
+        originalStep();
     };
 }
 
