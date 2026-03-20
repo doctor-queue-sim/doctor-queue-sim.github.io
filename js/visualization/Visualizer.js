@@ -27,12 +27,14 @@ class Visualizer {
         const height = this.container.clientHeight || 600;
 
         try {
-            // PixiJS v7: параметры передаются в конструктор, метода init() нет
+            // PixiJS v7: параметры передаются в конструктор, метода init() нет.
+            // forceCanvas: true — fallback на Canvas 2D если WebGL недоступен.
             this.app = new PIXI.Application({
                 width: width,
                 height: height,
                 backgroundColor: this.colors.background,
-                antialias: true
+                antialias: true,
+                forceCanvas: true
             });
 
             this.container.appendChild(this.app.view);
