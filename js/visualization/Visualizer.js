@@ -172,9 +172,15 @@ class Visualizer {
             const capacity = doctor.capacity || 1;
             const cols = Math.min(capacity, 2);
             const rows = Math.ceil(capacity / cols);
-            // Высота кабинета: заголовок (60px) + строки стульев (32px каждая)
-            const boxW = 40 + cols * 36;
-            const boxH = 60 + rows * 32;
+
+            const slotW = 36;
+            const slotH = 28;
+            const slotPadX = 8;
+            const slotPadY = 8;
+
+            // Высота кабинета: заголовок (50px) + строки слотов
+            const boxW = slotPadX * 2 + cols * slotW + (cols - 1) * 6;
+            const boxH = 50 + rows * (slotH + slotPadY);
             const x = doctorStartX + (index % 2) * spacing;
             const y = doctorY - boxH / 2 + Math.floor(index / 2) * (boxH + 20);
             const color = doctor.isBusy ? this.colors.doctorBusy : this.colors.doctorFree;
@@ -187,14 +193,14 @@ class Visualizer {
             ctx.fill();
             ctx.globalAlpha = 1;
             ctx.strokeStyle = color;
-            ctx.lineWidth = doctor.isBusy ? 3 : 4;
+            ctx.lineWidth = doctor.isBusy ? 3 : 2;
             this._roundRect(ctx, x, y, boxW, boxH, 10);
             ctx.stroke();
             ctx.restore();
 
             // Иконка врача (круг)
             ctx.beginPath();
-            ctx.arc(x + boxW / 2, y + 16, 10, 0, Math.PI * 2);
+            ctx.arc(x + boxW / 2, y + 14, 10, 0, Math.PI * 2);
             ctx.fillStyle = color;
             ctx.fill();
 
@@ -202,40 +208,34 @@ class Visualizer {
             ctx.fillStyle = this.colors.text;
             ctx.font = 'bold 11px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText(`Врач ${doctor.id}`, x + boxW / 2, y + 36);
-
+            ctx.fillText(`Врач ${doctor.id}`, x + boxW / 2, y + 34);
             ctx.textAlign = 'left';
 
-            // Стулья — рисуем явно каждый слот
+            // Слоты-зоны для мест (стульев)
             const slots = [];
             for (let s = 0; s < capacity; s++) {
                 const col = s % cols;
                 const row = Math.floor(s / cols);
-                const slotX = x + 10 + col * 36 + 12;
-                const slotY = y + 52 + row * 32 + 12;
-                slots.push({ x: slotX, y: slotY });
+                const slotX = x + slotPadX + col * (slotW + 6);
+                const slotY = y + 42 + row * (slotH + slotPadY);
+                const centerX = slotX + slotW / 2;
+                const centerY = slotY + slotH / 2;
+                slots.push({ x: centerX, y: centerY });
 
                 const isOccupied = s < doctor.currentPatients.length;
 
-                // Фон стула
-                ctx.beginPath();
-                ctx.arc(slotX, slotY, 12, 0, Math.PI * 2);
-                ctx.fillStyle = isOccupied ? '#e67e22' : '#dfe6e9';
+                // Зона-слот (прямоугольник)
+                ctx.save();
+                ctx.fillStyle = isOccupied ? 'rgba(230, 126, 34, 0.25)' : 'rgba(189, 195, 199, 0.35)';
+                this._roundRect(ctx, slotX, slotY, slotW, slotH, 6);
                 ctx.fill();
-                ctx.strokeStyle = isOccupied ? '#d35400' : '#b2bec3';
-                ctx.lineWidth = 1.5;
+                ctx.strokeStyle = isOccupied ? '#e67e22' : '#b2bec3';
+                ctx.lineWidth = isOccupied ? 2 : 1.5;
+                ctx.setLineDash(isOccupied ? [] : [4, 3]);
+                this._roundRect(ctx, slotX, slotY, slotW, slotH, 6);
                 ctx.stroke();
-
-                // Иконка стула (маленький символ)
-                if (!isOccupied) {
-                    ctx.fillStyle = '#95a5a6';
-                    ctx.font = '10px Arial';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillText('○', slotX, slotY);
-                    ctx.textBaseline = 'alphabetic';
-                    ctx.textAlign = 'left';
-                }
+                ctx.setLineDash([]);
+                ctx.restore();
             }
 
             this.doctorSprites.push({ x, y, boxW, boxH, doctor, slots });
