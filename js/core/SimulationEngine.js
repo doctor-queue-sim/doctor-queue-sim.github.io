@@ -92,13 +92,15 @@ class SimulationEngine {
     /**
      * Шаг 1: пациент появляется на улице.
      * Планируем следующий приход и событие ENTER (вход в клинику).
+     * Задержка перед входом — чтобы визуализация успела показать пациента на улице.
      */
     handleArrival() {
         const patient = new Patient(this.currentTime);
         this.streetPatient = patient;
 
-        // Планируем вход пациента на следующем шаге (время = текущее, чтобы сразу следующим событием)
-        this.eventQueue.schedule(this.currentTime, EventType.ENTER, { patient });
+        // Планируем вход пациента через небольшую задержку (1 мин симуляции)
+        // чтобы визуализация успела показать пациента на улице
+        this.eventQueue.schedule(this.currentTime + 1, EventType.ENTER, { patient });
 
         // Планируем следующий приход
         this.scheduleNextArrival();
@@ -167,10 +169,11 @@ class SimulationEngine {
         // Добавляем в статистику
         this.statistics.addServedPatient(patient);
 
-        // Если есть пациенты в очереди — планируем их вход к врачу следующим событием
+        // Если есть пациенты в очереди — планируем их вход к врачу через небольшую задержку
+        // чтобы визуализация успела показать врача как свободного
         if (!this.queue.isEmpty()) {
             const nextPatient = this.queue.dequeue();
-            this.eventQueue.schedule(this.currentTime, EventType.SERVICE_START, {
+            this.eventQueue.schedule(this.currentTime + 1, EventType.SERVICE_START, {
                 doctorId: doctor.id,
                 patient: nextPatient
             });

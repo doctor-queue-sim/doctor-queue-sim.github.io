@@ -271,15 +271,23 @@ class UIController {
         const simMinutesPerFrame = (dtReal / this.timeScale) * 60;
         const targetTime = this.engine.currentTime + simMinutesPerFrame;
 
-        // Выполняем все события до targetTime
+        // Выполняем события до targetTime, но останавливаемся после ARRIVAL или SERVICE_END
+        // чтобы визуализация успела показать промежуточное состояние (пациент на улице,
+        // врач свободен) перед следующим событием
         while (true) {
             const nextEvent = this.engine.eventQueue.peek();
             if (!nextEvent || nextEvent.time > targetTime) {
                 break;
             }
+            const eventType = nextEvent.type;
             if (!this.engine.step()) {
                 this.handleStop();
                 return;
+            }
+            // После ARRIVAL (пациент на улице) или SERVICE_END (врач освободился)
+            // прерываем цикл — следующий кадр покажет промежуточное состояние
+            if (eventType === EventType.ARRIVAL || eventType === EventType.SERVICE_END) {
+                break;
             }
         }
 
