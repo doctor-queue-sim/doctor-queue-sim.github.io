@@ -1,92 +1,61 @@
 /**
- * Класс Visualizer - визуализация симуляции с помощью PixiJS
+ * Класс Visualizer - визуализация симуляции с помощью нативного Canvas 2D API
  */
 class Visualizer {
     constructor(containerId) {
         this.container = document.getElementById(containerId);
-        this.app = null;
-        this.patientSprites = new Map(); // Map<patientId, sprite>
+        this.canvas = null;
+        this.ctx = null;
+        this.patientSprites = new Map(); // Map<patientId, {x, y, location, doctorId}>
         this.doctorSprites = [];
         this.queuePositions = [];
+        this.animationFrameId = null;
 
         this.colors = {
-            patient: 0x3498db,
-            patientWaiting: 0xe74c3c,
-            doctor: 0x2ecc71,
-            doctorBusy: 0xf39c12,
-            background: 0xecf0f1,
-            queueArea: 0xbdc3c7
+            patient: '#3498db',
+            patientWaiting: '#e74c3c',
+            doctor: '#2ecc71',
+            doctorBusy: '#f39c12',
+            background: '#ecf0f1',
+            queueArea: '#bdc3c7',
+            text: '#2c3e50',
+            textLight: '#ffffff'
         };
+
+        this._renderLoop = this._renderLoop.bind(this);
+        this._state = null;
+        this._welcomeVisible = true;
     }
 
     /**
-     * Инициализировать PixiJS приложение
+     * Инициализировать Canvas
      */
     async initialize() {
         const width = this.container.clientWidth || 800;
         const height = this.container.clientHeight || 600;
 
-        try {
-            // PixiJS v7: параметры передаются в конструктор, метода init() нет.
-            // forceCanvas: true — fallback на Canvas 2D если WebGL недоступен.
-            this.app = new PIXI.Application({
-                width: width,
-                height: height,
-                backgroundColor: this.colors.background,
-                antialias: true,
-                forceCanvas: true
-            });
+        this.canvas = document.createElement('canvas');
+        this.canvas.width = width;
+        this.canvas.height = height;
+        this.canvas.style.display = 'block';
+        this.container.appendChild(this.canvas);
 
-            this.container.appendChild(this.app.view);
+        this.ctx = this.canvas.getContext('2d');
 
-            // Создаем контейнеры для разных слоев
-            this.backgroundLayer = new PIXI.Container();
-            this.queueLayer = new PIXI.Container();
-            this.doctorLayer = new PIXI.Container();
-            this.patientLayer = new PIXI.Container();
-
-            this.app.stage.addChild(this.backgroundLayer);
-            this.app.stage.addChild(this.queueLayer);
-            this.app.stage.addChild(this.doctorLayer);
-            this.app.stage.addChild(this.patientLayer);
-
-            this.drawBackground();
-        } catch (error) {
-            console.error('Ошибка инициализации PixiJS:', error);
-            throw error;
-        }
+        this._computeQueuePositions();
+        this._startRenderLoop();
     }
 
     /**
-     * Нарисовать фон и области
+     * Вычислить позиции слотов очереди
      */
-    drawBackground() {
-        const width = this.app.screen.width;
-        const height = this.app.screen.height;
-
-        // Область очереди
-        const queueArea = new PIXI.Graphics();
-        queueArea.beginFill(this.colors.queueArea, 0.3);
-        queueArea.drawRoundedRect(50, height / 2 - 100, 200, 200, 10);
-        queueArea.endFill();
-        this.backgroundLayer.addChild(queueArea);
-
-        // Текст "Очередь"
-        const queueText = new PIXI.Text('Очередь', {
-            fontFamily: 'Arial',
-            fontSize: 18,
-            fill: 0x34495e,
-            fontWeight: 'bold'
-        });
-        queueText.x = 120;
-        queueText.y = height / 2 - 130;
-        this.backgroundLayer.addChild(queueText);
-
-        // Вычисляем позиции для пациентов в очереди
+    _computeQueuePositions() {
+        const height = this.canvas.height;
         const queueX = 150;
         const queueStartY = height / 2 - 80;
         const spacing = 35;
 
+        this.queuePositions = [];
         for (let i = 0; i < 10; i++) {
             this.queuePositions.push({
                 x: queueX,
@@ -96,108 +65,184 @@ class Visualizer {
     }
 
     /**
-     * Создать или обновить врачей
+     * Запустить цикл рендеринга
      */
-    updateDoctors(doctors) {
-        // Удаляем старые спрайты врачей
-        this.doctorSprites.forEach(sprite => {
-            this.doctorLayer.removeChild(sprite.container);
-        });
+    _startRenderLoop() {
+        const loop = () => {
+            this._draw();
+            this.animationFrameId = requestAnimationFrame(loop);
+        };
+        this.animationFrameId = requestAnimationFrame(loop);
+    }
+
+    /**
+     * Основной цикл отрисовки
+     */
+    _draw() {
+        const ctx = this.ctx;
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+
+        // Фон
+        ctx.fillStyle = this.colors.background;
+        ctx.fillRect(0, 0, w, h);
+
+        this._drawQueueArea(ctx, w, h);
+        this._drawDoctors(ctx, w, h);
+        this._drawPatients(ctx);
+
+        if (this._welcomeVisible) {
+            this._drawWelcome(ctx, w, h);
+        }
+    }
+
+    /**
+     * Нарисовать область очереди
+     */
+    _drawQueueArea(ctx, w, h) {
+        const x = 50;
+        const y = h / 2 - 100;
+        const rectW = 200;
+        const rectH = 200;
+
+        ctx.save();
+        ctx.globalAlpha = 0.3;
+        ctx.fillStyle = this.colors.queueArea;
+        this._roundRect(ctx, x, y, rectW, rectH, 10);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = this.colors.queueArea;
+        ctx.lineWidth = 2;
+        this._roundRect(ctx, x, y, rectW, rectH, 10);
+        ctx.stroke();
+        ctx.restore();
+
+        ctx.fillStyle = this.colors.text;
+        ctx.font = 'bold 18px Arial';
+        ctx.fillText('Очередь', 120, h / 2 - 115);
+    }
+
+    /**
+     * Нарисовать врачей
+     */
+    _drawDoctors(ctx, w, h) {
         this.doctorSprites = [];
 
-        const width = this.app.screen.width;
-        const height = this.app.screen.height;
-        const doctorStartX = width - 300;
-        const doctorY = height / 2;
+        if (!this._state) return;
+
+        const { doctors } = this._state;
+        const doctorStartX = w - 300;
+        const doctorY = h / 2;
         const spacing = 120;
 
         doctors.forEach((doctor, index) => {
-            const container = new PIXI.Container();
-
-            // Кабинет врача
-            const office = new PIXI.Graphics();
+            const x = doctorStartX + (index % 2) * spacing;
+            const y = doctorY - 50 + Math.floor(index / 2) * 130;
             const color = doctor.isBusy ? this.colors.doctorBusy : this.colors.doctor;
-            office.beginFill(color, 0.3);
-            office.drawRoundedRect(0, 0, 100, 100, 10);
-            office.endFill();
-            office.lineStyle(3, color);
-            office.drawRoundedRect(0, 0, 100, 100, 10);
-            container.addChild(office);
 
-            // Иконка врача
-            const doctorCircle = new PIXI.Graphics();
-            doctorCircle.beginFill(color);
-            doctorCircle.drawCircle(50, 35, 15);
-            doctorCircle.endFill();
-            container.addChild(doctorCircle);
+            // Кабинет
+            ctx.save();
+            ctx.globalAlpha = 0.3;
+            ctx.fillStyle = color;
+            this._roundRect(ctx, x, y, 100, 100, 10);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 3;
+            this._roundRect(ctx, x, y, 100, 100, 10);
+            ctx.stroke();
+            ctx.restore();
 
-            // Текст
-            const text = new PIXI.Text(`Врач ${doctor.id}`, {
-                fontFamily: 'Arial',
-                fontSize: 14,
-                fill: 0x2c3e50,
-                fontWeight: 'bold'
-            });
-            text.x = 50 - text.width / 2;
-            text.y = 60;
-            container.addChild(text);
+            // Иконка врача (круг)
+            ctx.beginPath();
+            ctx.arc(x + 50, y + 35, 15, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+
+            // Имя
+            ctx.fillStyle = this.colors.text;
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(`Врач ${doctor.id}`, x + 50, y + 65);
 
             // Статус
-            const status = new PIXI.Text(
-                doctor.isBusy ? 'Занят' : 'Свободен',
-                {
-                    fontFamily: 'Arial',
-                    fontSize: 12,
-                    fill: doctor.isBusy ? 0xe74c3c : 0x27ae60
-                }
-            );
-            status.x = 50 - status.width / 2;
-            status.y = 80;
-            container.addChild(status);
+            ctx.fillStyle = doctor.isBusy ? '#e74c3c' : '#27ae60';
+            ctx.font = '12px Arial';
+            ctx.fillText(doctor.isBusy ? 'Занят' : 'Свободен', x + 50, y + 82);
 
-            container.x = doctorStartX + (index % 2) * spacing;
-            container.y = doctorY - 50 + Math.floor(index / 2) * 130;
+            ctx.textAlign = 'left';
 
-            this.doctorLayer.addChild(container);
-            this.doctorSprites.push({
-                container: container,
-                doctor: doctor,
-                office: office,
-                circle: doctorCircle,
-                statusText: status
-            });
+            this.doctorSprites.push({ x, y, doctor });
         });
     }
 
     /**
-     * Создать спрайт пациента
+     * Нарисовать пациентов
      */
-    createPatientSprite(patient, x, y) {
-        const container = new PIXI.Container();
+    _drawPatients(ctx) {
+        for (const [, sprite] of this.patientSprites.entries()) {
+            const color = sprite.location === 'queue'
+                ? this.colors.patientWaiting
+                : this.colors.patient;
 
-        // Круг пациента
-        const circle = new PIXI.Graphics();
-        circle.beginFill(this.colors.patient);
-        circle.drawCircle(0, 0, 12);
-        circle.endFill();
-        container.addChild(circle);
+            ctx.beginPath();
+            ctx.arc(sprite.x, sprite.y, 12, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
 
-        // ID пациента
-        const text = new PIXI.Text(`${patient.id}`, {
-            fontFamily: 'Arial',
-            fontSize: 10,
-            fill: 0xffffff,
-            fontWeight: 'bold'
+            ctx.fillStyle = this.colors.textLight;
+            ctx.font = 'bold 10px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(String(sprite.id), sprite.x, sprite.y);
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'alphabetic';
+        }
+    }
+
+    /**
+     * Нарисовать приветственное сообщение
+     */
+    _drawWelcome(ctx, w, h) {
+        const msg = [
+            'Добро пожаловать в симуляцию очереди к врачу!',
+            '',
+            'Настройте параметры слева и нажмите «Старт»',
+            'для начала симуляции.'
+        ];
+
+        ctx.save();
+        ctx.globalAlpha = 0.85;
+        ctx.fillStyle = '#ffffff';
+        this._roundRect(ctx, w / 2 - 220, h / 2 - 70, 440, 130, 12);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.restore();
+
+        ctx.fillStyle = this.colors.text;
+        ctx.font = '18px Arial';
+        ctx.textAlign = 'center';
+        msg.forEach((line, i) => {
+            ctx.fillText(line, w / 2, h / 2 - 40 + i * 26);
         });
-        text.anchor.set(0.5);
-        container.addChild(text);
+        ctx.textAlign = 'left';
+    }
 
-        container.x = x;
-        container.y = y;
-
-        this.patientLayer.addChild(container);
-
-        return { container, circle, text };
+    /**
+     * Вспомогательный метод: скруглённый прямоугольник
+     */
+    _roundRect(ctx, x, y, w, h, r) {
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+        ctx.lineTo(x + w, y + h - r);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        ctx.lineTo(x + r, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.closePath();
     }
 
     /**
@@ -205,142 +250,111 @@ class Visualizer {
      */
     update(state) {
         if (!state) return;
+        this._state = state;
 
         const { queue, doctors } = state;
-
-        // Обновляем врачей
-        this.updateDoctors(doctors);
-
-        // Обновляем пациентов в очереди
-        this.updateQueue(queue);
-
-        // Обновляем пациентов у врачей
-        this.updatePatientsAtDoctors(doctors);
+        this._syncQueue(queue);
+        this._syncPatientsAtDoctors(doctors);
     }
 
     /**
-     * Обновить очередь пациентов
+     * Синхронизировать пациентов в очереди
      */
-    updateQueue(queue) {
+    _syncQueue(queue) {
         const patients = queue.getAllPatients();
-        const currentPatientIds = new Set(patients.map(p => p.id));
+        const currentIds = new Set(patients.map(p => p.id));
 
-        // Удаляем пациентов, которых больше нет в очереди
-        for (const [patientId, sprite] of this.patientSprites.entries()) {
-            if (!currentPatientIds.has(patientId) && sprite.location === 'queue') {
-                this.patientLayer.removeChild(sprite.container);
-                this.patientSprites.delete(patientId);
+        // Удаляем ушедших из очереди
+        for (const [id, sprite] of this.patientSprites.entries()) {
+            if (sprite.location === 'queue' && !currentIds.has(id)) {
+                this.patientSprites.delete(id);
             }
         }
 
-        // Добавляем или обновляем пациентов в очереди
+        // Добавляем/обновляем
         patients.forEach((patient, index) => {
             if (index >= this.queuePositions.length) return;
-
             const pos = this.queuePositions[index];
 
             if (!this.patientSprites.has(patient.id)) {
-                const sprite = this.createPatientSprite(patient, pos.x, pos.y);
-                sprite.location = 'queue';
-                this.patientSprites.set(patient.id, sprite);
+                this.patientSprites.set(patient.id, {
+                    id: patient.id,
+                    x: pos.x,
+                    y: pos.y,
+                    location: 'queue'
+                });
             } else {
                 const sprite = this.patientSprites.get(patient.id);
-                this.animateToPosition(sprite.container, pos.x, pos.y);
+                this._animateTo(sprite, pos.x, pos.y);
             }
         });
     }
 
     /**
-     * Обновить пациентов у врачей
+     * Синхронизировать пациентов у врачей
      */
-    updatePatientsAtDoctors(doctors) {
-        doctors.forEach((doctor, index) => {
-            if (doctor.currentPatient) {
-                const patient = doctor.currentPatient;
-                const doctorSprite = this.doctorSprites[index];
-
-                if (!doctorSprite) return;
-
-                const targetX = doctorSprite.container.x + 50;
-                const targetY = doctorSprite.container.y + 35;
-
-                if (!this.patientSprites.has(patient.id)) {
-                    const sprite = this.createPatientSprite(patient, targetX, targetY);
-                    sprite.location = 'doctor';
-                    sprite.doctorId = doctor.id;
-                    this.patientSprites.set(patient.id, sprite);
-                } else {
-                    const sprite = this.patientSprites.get(patient.id);
-                    if (sprite.location !== 'doctor' || sprite.doctorId !== doctor.id) {
-                        sprite.location = 'doctor';
-                        sprite.doctorId = doctor.id;
-                        this.animateToPosition(sprite.container, targetX, targetY);
-                    }
-                }
-            }
-        });
-
-        // Удаляем пациентов, которые закончили обслуживание
+    _syncPatientsAtDoctors(doctors) {
         const activeDoctorPatients = new Set(
             doctors.filter(d => d.currentPatient).map(d => d.currentPatient.id)
         );
 
-        for (const [patientId, sprite] of this.patientSprites.entries()) {
-            if (sprite.location === 'doctor' && !activeDoctorPatients.has(patientId)) {
-                this.fadeOutAndRemove(sprite);
-                this.patientSprites.delete(patientId);
+        doctors.forEach((doctor, index) => {
+            if (!doctor.currentPatient) return;
+            const patient = doctor.currentPatient;
+            const ds = this.doctorSprites[index];
+            if (!ds) return;
+
+            const targetX = ds.x + 50;
+            const targetY = ds.y + 35;
+
+            if (!this.patientSprites.has(patient.id)) {
+                this.patientSprites.set(patient.id, {
+                    id: patient.id,
+                    x: targetX,
+                    y: targetY,
+                    location: 'doctor',
+                    doctorId: doctor.id
+                });
+            } else {
+                const sprite = this.patientSprites.get(patient.id);
+                if (sprite.location !== 'doctor' || sprite.doctorId !== doctor.id) {
+                    sprite.location = 'doctor';
+                    sprite.doctorId = doctor.id;
+                    this._animateTo(sprite, targetX, targetY);
+                }
+            }
+        });
+
+        // Удаляем пациентов, закончивших обслуживание
+        for (const [id, sprite] of this.patientSprites.entries()) {
+            if (sprite.location === 'doctor' && !activeDoctorPatients.has(id)) {
+                this.patientSprites.delete(id);
             }
         }
     }
 
     /**
-     * Анимировать перемещение к позиции
+     * Плавное перемещение спрайта к целевой позиции
      */
-    animateToPosition(sprite, targetX, targetY, duration = 0.3) {
+    _animateTo(sprite, targetX, targetY, duration = 300) {
         const startX = sprite.x;
         const startY = sprite.y;
         const startTime = Date.now();
 
-        const animate = () => {
-            const elapsed = (Date.now() - startTime) / 1000;
+        const step = () => {
+            const elapsed = Date.now() - startTime;
             const progress = Math.min(elapsed / duration, 1);
-
-            // Easing function (ease-out)
             const eased = 1 - Math.pow(1 - progress, 3);
 
             sprite.x = startX + (targetX - startX) * eased;
             sprite.y = startY + (targetY - startY) * eased;
 
             if (progress < 1) {
-                requestAnimationFrame(animate);
+                requestAnimationFrame(step);
             }
         };
 
-        animate();
-    }
-
-    /**
-     * Плавно удалить спрайт
-     */
-    fadeOutAndRemove(sprite) {
-        const startAlpha = sprite.container.alpha;
-        const startTime = Date.now();
-        const duration = 0.5;
-
-        const animate = () => {
-            const elapsed = (Date.now() - startTime) / 1000;
-            const progress = Math.min(elapsed / duration, 1);
-
-            sprite.container.alpha = startAlpha * (1 - progress);
-
-            if (progress < 1) {
-                requestAnimationFrame(animate);
-            } else {
-                this.patientLayer.removeChild(sprite.container);
-            }
-        };
-
-        animate();
+        requestAnimationFrame(step);
     }
 
     /**
@@ -350,19 +364,27 @@ class Visualizer {
         const width = this.container.clientWidth;
         const height = this.container.clientHeight;
 
-        this.app.renderer.resize(width, height);
+        this.canvas.width = width;
+        this.canvas.height = height;
+        this._computeQueuePositions();
+    }
 
-        // Перерисовываем фон
-        this.backgroundLayer.removeChildren();
-        this.drawBackground();
+    /**
+     * Скрыть приветственное сообщение
+     */
+    hideWelcome() {
+        this._welcomeVisible = false;
     }
 
     /**
      * Уничтожить визуализатор
      */
     destroy() {
-        if (this.app) {
-            this.app.destroy(true, { children: true, texture: true });
+        if (this.animationFrameId) {
+            cancelAnimationFrame(this.animationFrameId);
+        }
+        if (this.canvas && this.canvas.parentNode) {
+            this.canvas.parentNode.removeChild(this.canvas);
         }
     }
 }

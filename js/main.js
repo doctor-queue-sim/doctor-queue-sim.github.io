@@ -34,33 +34,13 @@ async function initializeApp() {
 }
 
 /**
- * Показать приветственное сообщение
+ * Показать приветственное сообщение (рисуется внутри Visualizer)
+ * Скрывается при первом нажатии «Старт»
  */
 function showWelcomeMessage() {
-    // Создаем текстовый элемент с инструкциями
-    const welcomeText = new PIXI.Text(
-        'Добро пожаловать в симуляцию очереди к врачу!\n\n' +
-        'Настройте параметры слева и нажмите "Старт"\n' +
-        'для начала симуляции.',
-        {
-            fontFamily: 'Arial',
-            fontSize: 18,
-            fill: 0x2c3e50,
-            align: 'center',
-            wordWrap: true,
-            wordWrapWidth: 400
-        }
-    );
-
-    welcomeText.x = visualizer.app.screen.width / 2 - welcomeText.width / 2;
-    welcomeText.y = visualizer.app.screen.height / 2 - welcomeText.height / 2;
-
-    visualizer.app.stage.addChild(welcomeText);
-
-    // Удаляем сообщение при первом запуске
     const originalStart = uiController.handleStart.bind(uiController);
     uiController.handleStart = function() {
-        visualizer.app.stage.removeChild(welcomeText);
+        visualizer.hideWelcome();
         uiController.handleStart = originalStart;
         originalStart();
     };
@@ -97,12 +77,6 @@ function showError(message) {
  */
 window.addEventListener('DOMContentLoaded', () => {
     console.log('DOM загружен, инициализация приложения...');
-
-    // Проверяем доступность PIXI
-    if (typeof PIXI === 'undefined') {
-        showError('Библиотека PixiJS не загружена. Проверьте подключение к интернету.');
-        return;
-    }
 
     // Инициализируем приложение
     initializeApp();
